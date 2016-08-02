@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>St.Patrick Church NZ</title>
+
+    <!-- Bootstrap Core CSS -->
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Custom CSS -->
+    <link href="css/stylish-portfolio.css" rel="stylesheet">
+
+    <!-- Custom Fonts -->
+    <link href="font-awesome/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+    <link href="http://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,700,300italic,400italic,700italic" rel="stylesheet" type="text/css">
+
+    <link href='calendar/fullcalendar.css' rel='stylesheet' />
+    <link href='calendar/fullcalendar.print.css' rel='stylesheet' media='print' />
+    <link rel="stylesheet" href="css/bootstrap-datepicker.css">
+    <link rel="stylesheet" href="css/bootstrap.css">
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    
+    <link rel="stylesheet" href="css/jquery.timepicker.css">
+    <script src='calendar/lib/moment.min.js'></script>
+    <script src='calendar/lib/jquery.min.js'></script>
+    <script src='calendar/fullcalendar.min.js'></script>
+    <script src='js/jquery.timepicker.js'></script>
+
+    <link href="css/bootstrap-datetimepicker.css" rel="stylesheet" />
+    <script src="js/bootstrap-datetimepicker.min.js"></script>
+    <link href="//netdna.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css" rel="stylesheet">
+    <script src="//netdna.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.8.4/moment.min.js"></script>
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+        <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+		
+		http://wrapbootstrap.com/preview/WB0049220
+    <![endif]-->
+
+    <!-- Calendar Script -->
+<script>
+
+    $(document).ready(function() {  
+        //$(".form-area").hide();
+
+        $('#calendar').fullCalendar({
+            header: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'month,agendaWeek,agendaDay'
+            },
+            //defaultDate: '2016-01-12',
+            editable: true,
+            businessHours: true,
+            eventLimit: false, // allow "more" link when too many events
+            events: {
+                url: 'php/getEvents.php',
+                
+            },
+            eventAfterRender: function (event, element, view) 
+            {
+                //Inserted Code
+                var NewDate = new Date();
+                var _eventID = event.id;                            
+                $.ajax({
+                    url: "php/getCalendar.php",
+                    type: 'POST',
+                    dataType: "json",                               
+                    data: {eventID:_eventID},
+                    success: function(response){
+                        //alert(response[0].id + " " + response[0].title + " " + response[0].status);
+                         alert(event.end);
+                        var now = new Date();   
+                        var NewDate = moment(now).format("YYYY-MM-DD HH:mm");
+                        var dateEnd = moment(event.end).format("YYYY-MM-DD HH:mm");
+                        var dateStart = moment(event.start).format("YYYY-MM-DD HH:mm");
+                        if(response[0].status=="Pending"){ 
+
+                            element.css('background-color', '#ff8000');//Pending or Not Approved
+
+                          return; 
+                        }               
+                        else if (response[0].status=="Cancelled") { 
+
+                            element.css('background-color', '#cc0000');//Cancelled
+                        }
+                        else if (response[0].status=="Approved") {
+
+                            if(dateStart < NewDate && dateEnd > NewDate) {            
+                                
+                                element.css('background-color', '#77dd77');//Present or In progress     
+                                                
+                            }else if (dateStart < NewDate && dateEnd < NewDate) {
+                                
+                                element.css('background-color', '#7777dd');//Past or Completed 
+                                
+                            }else if (dateStart > NewDate && dateEnd > NewDate) {
+                                                            
+                                element.css('background-color', '#dd77dd');//Future or not Started 
+                                
+                            }
+                        }
+                        else {
+                            
+                        }
+                         
+                    }
+                });
+                        
+            },
+            eventClick: function(event) {   
+                var NewDate = new Date();
+                var _eventID = event.id;                            
+                $.ajax({
+                    url: "php/getCalendar.php",
+                    type: 'POST',
+                    dataType: "json",                               
+                    data: {eventID:_eventID},
+                    success: function(response){
+                        alert("Event ID: "+response[0].id + "\n" + 
+                              "Event Requestor : "+response[0].title + "\n" + 
+                              "Event Email : "+response[0].email + "\n" +
+                              "Event Mobile : "+response[0].mobile + "\n" +
+                              "Event Subject : "+response[0].subject + "\n" +
+                              "Event Start : "+response[0].start + "\n" +
+                              "Event End : "+response[0].end + "\n" +
+                              "Event Status : "+response[0].status + "\n");
+                    }
+                });             
+            },
+            loading: function(bool) {
+                $('#loading').toggle(bool);
+            }
+        });
+        
+        $("#submit").click(function(){
+                var _name = $("#name").val();
+                var _email = $("#email").val();
+                var _mobile = $("#mobile").val();
+                var _subject = $("#subject").val();
+                var _start = $("#durationFrom").val();
+                var _end = $("#durationto").val();
+                
+                $.ajax({
+                    type: 'POST',
+                    url: 'php/insertEvent.php',
+                    data: {name:_name, email:_email, mobile:_mobile, subject:_subject, start: _start, end:_end},
+                    success: function () {
+                        $("#name").val("");                     
+                        $("#email").val("");
+                        $("#mobile").val("");
+                        $("#subject").val("");
+                        $("#durationFrom").val("");
+                        $("#durationto").val("");                       
+                        $('#calendar').fullCalendar('refetchEvents');
+                    }
+            });
+        });
+    });
+
+</script> 
+<script>
+    $(document).ready(function(){ 
+        $('#characterLeft').text('250 characters left');
+        $('#message').keydown(function () {
+            var max = 140;
+            var len = $(this).val().length;
+            if (len >= max) {
+                $('#characterLeft').text('You have reached the limit');
+                $('#characterLeft').addClass('red');
+                $('#btnSubmit').addClass('disabled');            
+            } 
+            else {
+                var ch = max - len;
+                $('#characterLeft').text(ch + ' characters left');
+                $('#btnSubmit').removeClass('disabled');
+                $('#characterLeft').removeClass('red');            
+            }
+        }); 
+
+    });
+</script>
+
+<script>
+$(document).ready(function(){
+    $('.dateTimePicker').datetimepicker({
+        //format: 'YYYY-MM-DD[T]HH:mm:ss'
+        format: 'YYYY-MM-DD[T]hh:mm:ss',
+    });
+    /**
+    $('#dateTimePicker').datetimepicker({
+        format: 'YYYY-MM-DD[T]HH:mm:ss'
+    });
+    */
+});
+
+</script>
+
+</head>
+
+<body>
+    <style type="text/css">
+    .form-area {
+    background-color: #FAFAFA;
+    padding: 10px 40px 60px;
+    margin: 10px 0px 60px;
+    border: 1px solid GREY;
+    }
+    #calendar {
+        max-width: 700px;
+        margin: 40px auto;
+        padding: 0 10px;
+    }
+    /*  SECTIONS  */
+    .section {
+        clear: both;
+        padding: 0px;
+        margin: 0px;
+    }
+
+    /*  COLUMN SETUP  */
+    .col {
+        display: block;
+        float:left;
+        margin: 1% 0 1% 1.6%;
+    }
+    .col:first-child { margin-left: 0; }
+
+    /*  GROUPING  */
+    .group:before,
+    .group:after { content:""; display:table; }
+    .group:after { clear:both;}
+    .group { zoom:1; /* For IE 6/7 */ }
+    /*  GRID OF TWO  */
+    .span_2_of_2 {
+        width: 100%;
+    }
+    .span_1_of_2 {
+        width: 49.2%;
+    }
+
+    /*  GO FULL WIDTH AT LESS THAN 480 PIXELS */
+
+    @media only screen and (max-width: 480px) {
+        .col { 
+            margin: 1% 0 1% 0%;
+        }
+    }
+
+    @media only screen and (max-width: 480px) {
+        .span_2_of_2, .span_1_of_2 { width: 100%; }
+    }
+    </style>
+
+    <!-- Navigation -->
+    <a id="menu-toggle" href="#" class="btn btn-dark btn-lg toggle"><i class="fa fa-bars"></i></a>
+    <nav id="sidebar-wrapper">
+        <ul class="sidebar-nav">
+            <a id="menu-close" href="#" class="btn btn-light btn-lg pull-right toggle"><i class="fa fa-minus-circle fa-2x"></i></a>
+            <li class="sidebar-brand">                
+				<a href="#top"  onclick = $("#menu-close").click(); >Welcome</a>
+            </li>
+            <li>				
+                <a href="#top" onclick = $("#menu-close").click(); ><i class="fa fa-home fa-lg"></i>&nbsp;Home</a>
+            </li>
+            <li>
+                <a href="#about" onclick = $("#menu-close").click(); ><i class="fa fa-book fa-lg"></i>&nbsp;Message</a>
+            </li>
+            <li>
+                <a href="#services" onclick = $("#menu-close").click(); ><i class="fa fa-plane fa-lg"></i>&nbsp;Sacraments</a>
+            </li>
+            <li>
+                <a href="#portfolio" onclick = $("#menu-close").click(); ><i class="fa fa-calendar fa-lg"></i>&nbsp;Events Calendar</a>
+            </li>
+            <li>
+                <a href="#contact" onclick = $("#menu-close").click(); ><i class="fa fa-music fa-lg"></i>&nbsp;Music Section</a>
+            </li>
+            <li>
+                <a href="#contact" onclick = $("#menu-close").click(); ><i class="fa fa-users fa-lg"></i>&nbsp;People</a>
+            </li>
+            <li>
+                <a href="#contact" onclick = $("#menu-close").click(); ><i class="fa fa-info-circle fa-lg"></i>&nbsp;About Us</a>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- Header -->
+    <header id="top" class="header">
+        <div class="text-vertical-center">
+            <h1><!-- St.Patrick Church NZ --></h1>
+            <h3><!-- Fly with your Family &amp; Friends --></h3>
+            <br>
+            <a href="#about" class="btn btn-dark btn-lg">Find Out More</a>
+        </div>
+        
+    </header>
+
+    <!-- About -->
+    <section id="about" class="about">
+        <div class="container">
+            <div class="row">
+                <h1 class="text-center">Welcome to the Auckland Cathedral of St. Patrick and St. Joseph</h1>
+                <div class="col-md-6 text-center">
+                    <h2 class="text-align-left">Bishop's Note</h2>
+                    <h3>Eastertide greetings!</h3>
+                    <hr>
+                    <blockquote class="blockquote">
+                        <p class="lead text-justify"><img src="./img/patr.jpg" alt="test" class="img-circle pull-left" width="100" height="140">A special welcome to those who are visitors to our shores.The Cathedral is the Mother church of the Catholic Diocese of Auckland, attracting many who seek the abiding presence of the Lord. May your visit to this very sacred place be blessed. May we all be enthusiastic as we to share the Gospel of Joy. In this extraordinary Jubilee Year of Mercy I invite you to renew your faith by visiting the Cathedral and passing through the Holy Door of Mercy (the left transept facing the Cathedral Square). Prepare to embrace the Mercy of God by reflecting on the Parable of the Prodigal Son, (and his brother and loving father) in Luke chapter 15. In celebrating God's Mercy you might then reflect on the Parable of the Good Samaritan in Luke chapter 10 and take that same MERCY out into the world. May God bless our efforts as we celebrate LIFE in the RISEN LORD, the great season of grace!</p> <!-- <a target="_blank" href="">Test Phrase</a>. -->
+                        <footer class="blockquote-footer"><img src="./img/pat_sign.jpg" alt="test">Bishop Patrick Dunn <cite title="Source Title">AMDG</cite></footer> 
+                    </blockquote>                    
+                </div>
+                 <div class="col-md-6 text-center">
+                    <h2 class="text-align-left">Monsignor's Message</h2>
+                    <h3>Blessings and peace to all our visitors!</h3>
+                    <hr>
+                    <blockquote class="blockquote">
+                    <p class="lead text-justify"><img src="./img/bern.jpg" alt="test" class="img-circle pull-left" width="100" height="140">The Cathedral is well situated in downtown Auckland, at the heart of New Zealand's largest city.Some three thousand people attend Mass here each Sunday. During the week thousands more come to pray, light a candle or enjoy a moment's peace. The liturgical life of the Cathedral is rich and vibrant. May God bless our endeavours as we celebrate Jesus Christ ~ our Way, our Truth, our Life! Visit the Cathedral's Facebook page and you may have a sense of who we are... House of God, Icon of Christ, Mother Church, Oasis of Peace, Place of Prayer... home and place of community and celebration for God's people. <!-- <a target="_blank" href="">Test Phrase</a>. --></p>
+                    <footer class="blockquote-footer"><img src="./img/bkellyb_w.jpg" alt="test">Bishop Patrick Dunn <cite title="Source Title">AMDG</cite></footer>
+                    </blockquote>
+                </div>
+            </div>
+            <!-- /.row -->
+        </div> <!-- this is the marking-->
+        <!-- /.container -->
+    </section>
+
+    <!-- Services -->
+    <!-- The circle icons use Font Awesome's stacked icon classes. For more information, visit http://fontawesome.io/examples/ -->
+    <section id="services" class="services">
+        <div class="container">
+            <div class="row text-center">
+                <div class="col-lg-10 col-lg-offset-1">
+                    <h2 style="color:white;" >Sacraments</h2>
+                    <hr class="small">
+                    <div class="row">
+                        <div class="col-md-3 col-sm-6">
+                            <div class="service-item">
+                                <span class="fa-stack fa-4x">
+                                <i class="fa fa-circle fa-stack-2x"></i>
+                                <i class="fa fa-twitter fa-stack-1x" style="color:white;"></i>
+                            </span>
+                                <h4>
+                                    <strong style="color:#BCC441;">Baptism</strong>
+                                </h4>
+                                <!-- <p style="color:white;">"Go, therefore, and make disciples of all nations, baptising them in the name of the Father, and of the Son, and of the Holy Spirit, teaching them to observe all that I have commanded you."</p> -->
+                                <button type="button" class="btn btn-light" data-toggle="modal" data-target="#myModalBaptism">Learn More</button>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <div class="service-item">
+                                <span class="fa-stack fa-4x">
+                                <i class="fa fa-circle fa-stack-2x"></i>
+                                <i class="fa fa-fighter-jet fa-stack-1x" style="color:white;"></i>
+                            </span>
+                                <h4>
+                                    <strong style="color:#BCC441;">Reconciliation</strong>
+                                </h4>
+                                <!-- <p style="color:white;">"Jesus said to them again, 'Peace be with you. As the Father has sent me, even so I send you. And when he had said this, he breathed on them, and said to them, 'Receive the Holy Spirit. If you forgive the sins of any, they are forgiven. If you retain the sins of any, they are retained." </p> -->
+                                <a href="#" class="btn btn-light">Learn More</a>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <div class="service-item">
+                                <span class="fa-stack fa-4x">
+                                <i class="fa fa-circle fa-stack-2x"></i>
+                                <i class="fa fa-space-shuttle fa-stack-1x" style="color:white;"></i>
+                            </span>
+                                <h4>
+                                    <strong style="color:#BCC441;">Confirmation</strong>
+                                </h4>
+                                <!-- <p style="color:white;">"Now when the apostles at Jerusalem heard that Samaria had received the Word of God, they sent to them Peter and John, who came down and prayed for them that they might receive the Holy Spirit; for it had not yet fallen on any of them, but they had only been baptised in the name of the Lord Jesus. Then they laid their hands on them and they received the Holy Spirit." </p> -->
+                                <a href="#" class="btn btn-light">Learn More</a>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <div class="service-item">
+                                <span class="fa-stack fa-4x">
+                                <i class="fa fa-circle fa-stack-2x"></i>
+                                <i class="fa fa-wheelchair fa-stack-1x" style="color:white;"></i>
+                            </span>
+                                <h4>
+                                    <strong style="color:#BCC441;">Eucharist</strong>
+                                </h4>
+                                <!-- <p style="color:white;">"Then he took the bread, said the blessing, broke it, and gave it to them, saying, 'This is my body, which will be given for you; do this in memory of me.' And likewise the cup after they had eaten, saying, 'This cup is the new covenant in my blood, which will be shed for you." </p> -->
+                                <a href="#" class="btn btn-light">Learn More</a>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <div class="service-item">
+                                <span class="fa-stack fa-4x">
+                                <i class="fa fa-circle fa-stack-2x"></i>
+                                <i class="fa fa-wheelchair fa-stack-1x" style="color:white;"></i>
+                            </span>
+                                <h4>
+                                    <strong style="color:#BCC441;">Marriage</strong>
+                                </h4>
+                                <!-- <p style="color:white;">"For this reason a man shall leave his father and mother and be joined to his wife, and the two shall become one flesh." </p> -->
+                                <a href="#" class="btn btn-light">Learn More</a>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <div class="service-item">
+                                <span class="fa-stack fa-4x">
+                                <i class="fa fa-circle fa-stack-2x"></i>
+                                <i class="fa fa-wheelchair fa-stack-1x" style="color:white;"></i>
+                            </span>
+                                <h4>
+                                    <strong style="color:#BCC441;">Holy Orders</strong>
+                                </h4>
+                                <!-- <p style="color:white;" >"Do this in memory of me."</p> -->
+                                <a href="#" class="btn btn-light">Learn More</a>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <div class="service-item">
+                                <span class="fa-stack fa-4x">
+                                <i class="fa fa-circle fa-stack-2x"></i>
+                                <i class="fa fa-wheelchair fa-stack-1x" style="color:white;"></i>
+                            </span>
+                                <h4>
+                                    <strong style="color:#BCC441;">Anointing of the Sick</strong>
+                                </h4>
+                               <!--  <p style="color:white;">"Is any among you sick? Let him call for the presbyters of the Church, and let them pray over him, anointing him with oil in the name of the Lord; and the prayer of faith will save the sick man, and the Lord will raise him up; and if he has committed sins, he will be forgiven."</p> -->
+                                <a href="#" class="btn btn-light">Learn More</a>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- /.row (nested) -->
+                </div>
+                <!-- /.col-lg-10 -->
+            </div>
+            <!-- /.row -->
+        </div>
+        <!-- /.container -->
+    </section>
+
+            <!-- Modal Baptism Test-->
+        <div class="modal fade" id="myModalBaptism" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+          <div class="modal-dialog" role="document">
+            <div class="modal-content">
+              <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title" id="myModalLabel">Baptism</h4>
+              </div>
+              <div class="modal-body">
+                ...
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-muted">Save changes</button>
+              </div>
+            </div>
+          </div>
+        </div>
+    <!-- Portfolio -->
+    <section id="portfolio" class="portfolio">    
+        
+            <div class="row">
+                <div class="col-lg-10 col-lg-offset-1 text-center">
+                    <h2>Events</h2>
+                    <hr class="small">
+                    <div class="section group">
+                            <div class="col span_1_of_2">
+                                <!--Create Event -->
+                                <div class="form-area">  
+                                    <form id="insertEvent" role="form">
+                                    <br style="clear:both">
+                                                <h3 style="margin-bottom: 25px; text-align: center;">Create Event</h3>
+                                                <div class="form-group">
+                                                    <input type="text" class="form-control" id="name" name="name" placeholder="Name" required>
+                                                </div>
+                                                <div class="form-group">
+                                                    <input type="text" class="form-control" id="email" name="email" placeholder="Email" required>
+                                                </div>
+                                                <div class="form-group">
+                                                    <input type="text" class="form-control" id="mobile" name="mobile" placeholder="Mobile Number" required>
+                                                </div>
+                                                <div class="form-group">
+                                                    <input type="text" class="form-control" id="subject" name="subject" placeholder="Subject" required>
+                                                </div>
+                                                <div class="form-group">
+                                                <input id="durationFrom" type="text" class="time dateTimePicker form-control" name="timeStart"/> to <input id="durationto" type="text" class="time dateTimePicker form-control" name="timeEnd" />
+                                                </div>
+                                                <div class="form-group"> 
+                                                <textarea class="form-control" type="textarea" id="message" placeholder="Message" maxlength="250" rows="7"></textarea>
+                                                    <span class="help-block"><p id="characterLeft" class="help-block ">You have reached the limit</p></span>                    
+                                                </div>
+                                        
+                                    <button type="button" id="submit" name="submit" class="btn btn-primary pull-right">Submit Event</button>
+                                    </form>
+                                </div>
+                            
+                            </div>
+                            <div class="col span_1_of_2">
+                                <div id='calendar'></div>
+                            </div>
+                        </div>
+                            
+                    <!--<a href="#" class="btn btn-dark">View More Items</a> -->
+                </div>
+                <!-- /.col-lg-10 -->
+            </div>
+            <!-- /.row -->
+        <!--<div class="container"></div>
+         /.container -->
+    </section>
+
+    <!-- Callout -->
+    <aside class="callout">
+        <div class="text-vertical-center">
+            <h1>Vertically Centered Text</h1>
+        </div>
+    </aside>
+
+    <!-- Call to Action -->
+    <aside class="call-to-action bg-primary">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-12 text-center">
+                    <h3>The buttons below are impossible to resist.</h3>
+                    <a href="#" class="btn btn-lg btn-light">Click Me!</a>
+                    <a href="#" class="btn btn-lg btn-dark">Look at Me!</a>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Map -->
+    <section id="contact" class="map">
+    <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3192.83364039634!2d174.76128751550198!3d-36.84646008708459!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6d0d47fa7a7f679f%3A0xa2fee58c9f8f1c59!2sSt+Patrick&#39;s+Cathedral!5e0!3m2!1sen!2snz!4v1462425524128" width="400" height="300" frameborder="0" style="border:0" allowfullscreen></iframe>
+       <!--  <iframe width="100%" height="100%" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src="https://maps.google.com/maps?f=q&amp;source=s_q&amp;hl=en&amp;geocode=&amp;q=Twitter,+Inc.,+Market+Street,+San+Francisco,+CA&amp;aq=0&amp;oq=twitter&amp;sll=28.659344,-81.187888&amp;sspn=0.128789,0.264187&amp;ie=UTF8&amp;hq=Twitter,+Inc.,+Market+Street,+San+Francisco,+CA&amp;t=m&amp;z=15&amp;iwloc=A&amp;output=embed"></iframe> -->
+        <br />
+        <small>
+        <a href="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3192.83364039634!2d174.76128751550198!3d-36.84646008708459!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6d0d47fa7a7f679f%3A0xa2fee58c9f8f1c59!2sSt+Patrick&#39;s+Cathedral!5e0!3m2!1sen!2snz!4v1462425524128"></a>
+            <!-- <a href="https://maps.google.com/maps?f=q&amp;source=embed&amp;hl=en&amp;geocode=&amp;q=Twitter,+Inc.,+Market+Street,+San+Francisco,+CA&amp;aq=0&amp;oq=twitter&amp;sll=28.659344,-81.187888&amp;sspn=0.128789,0.264187&amp;ie=UTF8&amp;hq=Twitter,+Inc.,+Market+Street,+San+Francisco,+CA&amp;t=m&amp;z=15&amp;iwloc=A"></a> -->
+        </small>
+        </iframe>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-10 col-lg-offset-1 text-center">
+                    <h4><strong>St.Patrick's Cathedral</strong>
+                    </h4>
+                    <p>43 Wyndham Street<br>Auckland 1010 New Zealand</p>
+                    <ul class="list-unstyled">
+                        <li><i class="fa fa-phone fa-fw"></i>+64 (9) 3034509</li>
+                        <li><i class="fa fa-envelope-o fa-fw"></i> <a href="mailto:name@example.com">info@stpatricks.org.nz</a>
+                        </li>
+                    </ul>
+                    <br>
+                    <ul class="list-inline">
+                        <li>
+                            <a href="https://www.facebook.com/stpatricksnz/?fref=ts"><i class="fa fa-facebook fa-fw fa-3x"></i></a>
+                        </li>
+                        <li>
+                            <a href="#"><i class="fa fa-twitter fa-fw fa-3x"></i></a>
+                        </li>
+                        <li>
+                            <a href="#"><i class="fa fa-dribbble fa-fw fa-3x"></i></a>
+                        </li>
+                    </ul>
+                    <hr class="small">
+                    <p class="text-muted">Copyright &copy; St.Patrick 2015</p>
+                </div>
+
+            </div>
+        </div>
+    </footer>
+
+   
+
+    <!-- Custom Theme JavaScript -->
+    <script>
+    // Closes the sidebar menu
+    $("#menu-close").click(function(e) {
+        e.preventDefault();
+        $("#sidebar-wrapper").toggleClass("active");
+    });
+
+    // Opens the sidebar menu
+    $("#menu-toggle").click(function(e) {
+        e.preventDefault();
+        $("#sidebar-wrapper").toggleClass("active");
+    });
+
+    // Scrolls to the selected menu item on the page
+    $(function() {
+        $('a[href*=#]:not([href=#])').click(function() {
+            if (location.pathname.replace(/^\//, '') == this.pathname.replace(/^\//, '') || location.hostname == this.hostname) {
+
+                var target = $(this.hash);
+                target = target.length ? target : $('[name=' + this.hash.slice(1) + ']');
+                if (target.length) {
+                    $('html,body').animate({
+                        scrollTop: target.offset().top
+                    }, 1000);
+                    return false;
+                }
+            }
+        });
+    });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset='utf-8' />
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="">
+<meta name="author" content="">
+
+<title>St. Patrick Church</title>
+<!-- Bootstrap Core CSS -->
+<link href="css/bootstrap.min.css" rel="stylesheet">
+
+<!-- Custom CSS -->
+<link href="css/stylish-portfolio.css" rel="stylesheet">
+
+<!-- Custom Fonts -->
+<link href="font-awesome/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,700,300italic,400italic,700italic" rel="stylesheet" type="text/css">
+
+
+<link href='calendar/fullcalendar.css' rel='stylesheet' />
+<link href='calendar/fullcalendar.print.css' rel='stylesheet' media='print' />
+<link rel="stylesheet" href="css/bootstrap-datepicker.css">
+<link rel="stylesheet" href="css/bootstrap.css">
+<link rel="stylesheet" href="css/bootstrap.min.css">
+<link rel="stylesheet" href="css/default.css">
+<link rel="stylesheet" href="css/jquery.timepicker.css">
+<script src='calendar/lib/moment.min.js'></script>
+<script src='calendar/lib/jquery.min.js'></script>
+<script src='calendar/fullcalendar.min.js'></script>
+<script src='js/jquery.timepicker.js'></script>
+<!-- Calendar Script -->
+<script>
+
+	$(document).ready(function() {	
+		
+		$('#calendar').fullCalendar({
+			header: {
+				left: 'prev,next today',
+				center: 'title',
+				right: 'month,agendaWeek,agendaDay'
+			},
+			//defaultDate: '2016-01-12',
+			editable: true,
+			businessHours: true,
+			eventLimit: true, // allow "more" link when too many events
+			events: {
+				url: 'php/getEvents.php',
+				
+			},
+			eventAfterRender: function (event, element, view) 
+			{
+				//Inserted Code
+				var NewDate = new Date();
+				var _eventID = event.id;							
+				$.ajax({
+					url: "php/getCalendar.php",
+					type: 'POST',
+					dataType: "json",								
+					data: {eventID:_eventID},
+					success: function(response){
+						//alert(response[0].id + " " + response[0].title + " " + response[0].status);
+						var now = new Date();	
+						var NewDate = moment(now).format("YYYY-MM-DD HH:mm");
+						var dateEnd = moment(event.end).format("YYYY-MM-DD HH:mm");
+						var dateStart = moment(event.start).format("YYYY-MM-DD HH:mm");
+						if(response[0].status=="Pending"){ 
+
+							element.css('background-color', '#ff8000');//Pending or Not Approved
+
+						  return; 
+						}				
+						else if (response[0].status=="Cancelled") {	
+
+							element.css('background-color', '#cc0000');//Cancelled
+						}
+						else if (response[0].status=="Approved") {
+
+							if(dateStart < NewDate && dateEnd > NewDate) {            
+								
+								element.css('background-color', '#77dd77');//Present or In progress 	
+												
+							}else if (dateStart < NewDate && dateEnd < NewDate) {
+								
+								element.css('background-color', '#7777dd');//Past or Completed 
+								
+							}else if (dateStart > NewDate && dateEnd > NewDate) {
+															
+								element.css('background-color', '#dd77dd');//Future or not Started 
+								
+							}
+						}
+						else {
+							
+						}
+						 
+					}
+				});
+						
+			},
+			eventClick: function(event) {	
+				var NewDate = new Date();
+				var _eventID = event.id;							
+				$.ajax({
+					url: "php/getCalendar.php",
+					type: 'POST',
+					dataType: "json",								
+					data: {eventID:_eventID},
+					success: function(response){
+						alert("Event ID: "+response[0].id + "\n" + 
+							  "Event Requestor : "+response[0].title + "\n" + 
+							  "Event Email : "+response[0].email + "\n" +
+							  "Event Mobile : "+response[0].mobile + "\n" +
+							  "Event Subject : "+response[0].subject + "\n" +
+							  "Event Start : "+response[0].start + "\n" +
+							  "Event End : "+response[0].end + "\n" +
+							  "Event Status : "+response[0].status + "\n");
+					}
+				});				
+			},
+			loading: function(bool) {
+				$('#loading').toggle(bool);
+			}
+		});
+		
+		$("#submit").click(function(){
+				var _name = $("#name").val();
+				var _email = $("#email").val();
+				var _mobile = $("#mobile").val();
+				var _subject = $("#subject").val();
+				var _start = $("#durationFrom").val();
+				var _end = $("#durationto").val();
+				
+				$.ajax({
+					type: 'POST',
+					url: 'php/insertEvent.php',
+					data: {name:_name, email:_email, mobile:_mobile, subject:_subject, start: _start, end:_end},
+					success: function () {
+						$("#name").val("");						
+						$("#email").val("");
+						$("#mobile").val("");
+						$("#subject").val("");
+						$("#durationFrom").val("");
+						$("#durationto").val("");						
+						$('#calendar').fullCalendar('refetchEvents');
+					}
+			});
+		});
+	});
+
+</script> 
+<script>
+	$(document).ready(function(){ 
+	    $('#characterLeft').text('250 characters left');
+	    $('#message').keydown(function () {
+	        var max = 140;
+	        var len = $(this).val().length;
+	        if (len >= max) {
+	            $('#characterLeft').text('You have reached the limit');
+	            $('#characterLeft').addClass('red');
+	            $('#btnSubmit').addClass('disabled');            
+	        } 
+	        else {
+	            var ch = max - len;
+	            $('#characterLeft').text(ch + ' characters left');
+	            $('#btnSubmit').removeClass('disabled');
+	            $('#characterLeft').removeClass('red');            
+	        }
+	    }); 
+
+	});
+</script>
+</head>
+<body>
+<div id='calendar'></div>		
+</body>
+</html>
